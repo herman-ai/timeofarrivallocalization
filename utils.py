@@ -102,14 +102,6 @@ def plot(xActual, yActual, xEst, yEst, EPSILON_S_REAL, EPSILON_S_IMG, params_tex
     plt.savefig(FILENAME_PREFIX + '_' + xLabel + yLabel + '.pdf', bbox_inches='tight', pad_inches = 0.5)
     plt.clf()
 
-
-def differenceX(est, obs):
-    val = 0.0
-    for key in sorted(est):
-        d = [( (a[0] - b[0]) ** 2, (a[1] - b[1]) ** 2, (a[2] - b[2]) ** 2, (a[3] - b[3]) ** 2) for a,b in zip(est[key], obs[key])]
-        val = val + sum((sum(c) for c in d))
-    return val
-
 # for soil to soil
 def differenceX1(est, obs):
     val = 0.0
@@ -117,6 +109,13 @@ def differenceX1(est, obs):
         val = val + (est[key] - obs[key]) ** 2
     return val
 
+#Anchor to sensor
+def difference(est, obs):
+    val = 0.0
+    for key in sorted(est):
+        d = [( (a[0] - b[0]) ** 2, (a[1] - b[1]) ** 2, (a[2] - b[2]) ** 2, (a[3] - b[3]) ** 2) for a,b in zip(est[key], obs[key])]
+        val = val + sum((sum(c) for c in d))
+    return val
 
 def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
 
@@ -154,4 +153,26 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
             est = dist / speed
             estSS[str(i) + str(j)] = est
 
-    return differenceX(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
+    return difference(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
+
+
+#for estimating location of one sensor
+def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil2Soil):
+
+    xyzA = arg
+    estimatedTime3D = {"above": (), "below": ()}
+
+    #Anchor to Sensor
+    for anchorKey in sorted(anchors):
+        estimated = ()
+        for anchor in anchors[anchorKey]:
+            if anchorKey == "below":
+                distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
+                estimated = estimated + (distance / speed, )
+            elif anchorKey == "above":
+                distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
+                distanceSoil = abs(xyzA[2])
+                estimated = estimated + ((distanceAir + distanceSoil) / speed, )
+        estimatedTime3D[anchorKey] = estimatedTime3D[anchorKey] + (estimated,)
+
+    return difference(estimatedTime3D, {key:(tObs[key][sensorId],) for key in sorted(tObs)})

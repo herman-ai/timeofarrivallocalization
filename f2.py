@@ -23,26 +23,6 @@ def difference(est, obs):
         val = val + sum((sum(c) for c in d))
     return val
 
-#for estimating location of one sensor
-def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil2Soil):
-
-    xyzA = arg
-    estimatedTime3D = {"above": (), "below": ()}
-
-    #Anchor to Sensor
-    for anchorKey in sorted(anchors):
-        estimated = ()
-        for anchor in anchors[anchorKey]:
-            if anchorKey == "below":
-                distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
-                estimated = estimated + (distance / speed, )
-            elif anchorKey == "above":
-                distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
-                distanceSoil = abs(xyzA[2])
-                estimated = estimated + ((distanceAir + distanceSoil) / speed, )
-        estimatedTime3D[anchorKey] = estimatedTime3D[anchorKey] + (estimated,)
-
-    return difference(estimatedTime3D, {key:(tObs[key][i],) for key in sorted(tObs)})
 
 for epsilon_index in range(1):
 #for epsilon_index in range(len(EPSILON_S_REAL_ARRAY)):
