@@ -32,7 +32,7 @@ OMEGA = 2 * pi * FREQUENCY
 speed = 3. * 10
 F = 1000.   #Field size
 H = 100.
-NUM_SENSORS = 10
+NUM_SENSORS = 20
 MU_0 = 4 * pi * 10 ** (-7)
 MU_A = MU_0
 MU_S = 1.0084 * MU_0
@@ -107,32 +107,57 @@ def differenceX1(est, obs):
 def difference(est, obs):
     val = 0.0
     for key in sorted(est):
-        d = [( (a[0] - b[0]) ** 2, (a[1] - b[1]) ** 2, (a[2] - b[2]) ** 2, (a[3] - b[3]) ** 2) for a,b in zip(est[key], obs[key])]
-        val = val + sum((sum(c) for c in d))
+        for anchorNum in sorted(obs[key]):
+            val = val + (est[key][anchorNum] - obs[key][anchorNum]) ** 2
+    return val
+
+def differenceAnchorsToAllSensor(est, obs):
+    val = 0.0
+    for key in obs:  #above or below
+        i = 0
+        #print "obs[key] = ", obs[key], "key = ", key
+        #print "est[key] = ", est[key], "key = ", key
+        for observedSensorData in obs[key]: # get the dictionary for a sensor
+            #print "obs[key][i] = ", obs[key][i], "i = ", i
+            #print "est[key][i] = ", est[key][i], "i = ", i
+            for anchorNum in observedSensorData:
+                val = val + (obs[key][i][anchorNum] - est[key][i][anchorNum]) ** 2
+            i = i + 1
     return val
 
 def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
 
     xyzAll = ()
-    for i in range(2):
+    for i in range(len(arg)/3):
         xyz = arg[i * 3: (i + 1) * 3]
         xyzAll = xyzAll + (xyz,)
 
     estimatedTime3D = {"above": (), "below": ()}
 
     #Anchor to Sensor
+    i = 0
     for xyzA in xyzAll:
-        for anchorKey in sorted(anchors):
-            estimated = ()
-            for anchor in anchors[anchorKey]:
-                if anchorKey == "below":
-                    distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
-                    estimated = estimated + (distance / speed, )
-                elif anchorKey == "above":
-                    distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
-                    distanceSoil = abs(xyzA[2])
-                    estimated = estimated + ((distanceAir + distanceSoil) / speed, )
-            estimatedTime3D[anchorKey] = estimatedTime3D[anchorKey] + (estimated,)
+        #print "i = ", i
+        #i = i + 1
+        #print "len(xyzAll) = ", len(xyzAll)
+        estimated = {}
+        anchorId = 0
+        for anchor in anchors["below"]:
+            distance = sqrt((anchor[0] - xyzA[0]) ** 2 +\
+                (anchor[1] - xyzA[1]) ** 2 +\
+                (anchor[2] - xyzA[2]) ** 2)
+            estimated[anchorId] = distance / speed
+            anchorId = anchorId + 1
+        estimatedTime3D["below"] = estimatedTime3D["below"] + (estimated, )
+
+        estimated = {}
+        anchorId = 0
+        for anchor in anchors["above"]:
+            distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
+            distanceSoil = abs(xyzA[2])
+            estimated[anchorId] = (distanceAir + distanceSoil) / speed
+            anchorId = anchorId + 1
+        estimatedTime3D["above"] = estimatedTime3D["above"] + (estimated, )
 
     #sensor to sensor
     estSS = {}
@@ -146,8 +171,7 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
             dist = sqrt((xyzi[0] - xyzj[0]) ** 2 + (xyzi[1] - xyzj[1]) ** 2 +(xyzi[2] - xyzj[2]) ** 2)
             est = dist / speed
             estSS[str(i) + str(j)] = est
-
-    return difference(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
+    return differenceAnchorsToAllSensor(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
 
 
 #for estimating location of one sensor
@@ -158,15 +182,20 @@ def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil
 
     #Anchor to Sensor
     for anchorKey in sorted(anchors):
-        estimated = ()
-        for anchor in anchors[anchorKey]:
-            if anchorKey == "below":
-                distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
-                estimated = estimated + (distance / speed, )
-            elif anchorKey == "above":
-                distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
-                distanceSoil = abs(xyzA[2])
-                estimated = estimated + ((distanceAir + distanceSoil) / speed, )
-        estimatedTime3D[anchorKey] = estimatedTime3D[anchorKey] + (estimated,)
+        estimated = {}
+        i = 0
+        for anchor in anchors["below"]:
+            distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
+            estimated[i] = distance / speed
+            i = i + 1
+        estimatedTime3D["below"] = estimated
+        estimated = {}
+        i = 0
+        for anchor in anchors["above"]:
+            distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
+            distanceSoil = abs(xyzA[2])
+            estimated[i] = (distanceAir + distanceSoil) / speed
+            i = i + 1
+        estimatedTime3D["above"] = estimated
 
-    return difference(estimatedTime3D, {key:(tObs[key][sensorId],) for key in sorted(tObs)})
+    return difference(estimatedTime3D, {key:tObs[key][sensorId] for key in tObs})

@@ -41,24 +41,28 @@ for epsilon_index in range(1):
     obsTAnchors = {"above": (), "below": ()}
 
     for xyzOneSensorActual in xyzAllActual:
-        observed = ()
+        observed = {}
+        i = 0
         for anchor in AnchorsXYZ["below"]:
             distance = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 +\
                     (anchor[1] - xyzOneSensorActual[1]) ** 2 +\
                     (anchor[2] - xyzOneSensorActual[2]) ** 2)
-            observed = observed + (distance / speed + random()/40, )
-        obsTAnchors["below"] = obsTAnchors["below"] + (observed,)
+            observed[i] = distance / speed + random()/40
+            i = i + 1
+        obsTAnchors["below"] = obsTAnchors["below"] + (observed, )
 
-        observed = ()
+        observed = {}
+        i = 0
         for anchor in AnchorsXYZ["above"]:
                 distanceAir = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 + (anchor[1] - xyzOneSensorActual[1]) ** 2 + (anchor[2]) ** 2)
                 distanceSoil = abs(xyzOneSensorActual[2])
                 mean = (distanceAir + distanceSoil) / speed
                 sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
                 #print "mean = ", (distanceAir + distanceSoil) / speed, ", sigma = ", sigma
-                observed = observed + (numpy.random.normal(loc = mean, scale = sigma, size = 1)[0], )
+                observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                i = i + 1
                 #observed = observed + ((distanceAir + distanceSoil) / speed + random()/400, )
-        obsTAnchors["above"] = obsTAnchors["above"] + (observed,)
+        obsTAnchors["above"] = obsTAnchors["above"] + (observed, )
 
     observedTime3DSS = {}
 
@@ -92,7 +96,7 @@ for epsilon_index in range(1):
         #print e
         print "*****"
     print xyzAllActual
-    print xyzFirstEst
+    print "xyzFirstEst = ", xyzFirstEst
     res = minimize(timeOfArrialMatcher3DX, xyzFirstEst, args=(obsTAnchors, AnchorsXYZ, observedTime3DSS), method='Nelder-Mead', options = {"maxiter":1e6})
 
     e = [(res.x[i * 3: (i+1) * 3]) for i in range(NUM_SENSORS)]
