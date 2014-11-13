@@ -14,28 +14,18 @@ from utils import *
 
 seed()
 
-
-#Anchor to sensor
-def difference(est, obs):
-    val = 0.0
-    for key in sorted(est):
-        d = [( (a[0] - b[0]) ** 2, (a[1] - b[1]) ** 2, (a[2] - b[2]) ** 2, (a[3] - b[3]) ** 2) for a,b in zip(est[key], obs[key])]
-        val = val + sum((sum(c) for c in d))
-    return val
-
-
 for epsilon_index in range(1):
 #for epsilon_index in range(len(EPSILON_S_REAL_ARRAY)):
     print "********************************************"
     print "EPSILON_INDEX = ", epsilon_index
     print "********************************************"
-    EPSILON_S_REAL = EPSILON_S_REAL_ARRAY[epsilon_index]
-    EPSILON_S_IMG = EPSILON_S_IMG_ARRAY[epsilon_index]
+    EPSILON_S_REAL = EPSILON_SOIL[epsilon_index]["real"]
+    EPSILON_S_IMG = EPSILON_SOIL[epsilon_index]["img"]
 
 
     ALPHA_SOIL = OMEGA * sqrt( (MU_S * EPSILON_S_REAL/2) * (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) - 1))
-    RHO = ((sqrt(MU_A / EPSILON_A) - sqrt(MU_S / EPSILON_S_REAL)) / \
-        (sqrt(MU_A / EPSILON_A) + sqrt(MU_S / EPSILON_S_REAL))) ** 2
+    RHO = ((sqrt(MU_A / EPSILON_AIR) - sqrt(MU_S / EPSILON_S_REAL)) / \
+        (sqrt(MU_A / EPSILON_AIR) + sqrt(MU_S / EPSILON_S_REAL))) ** 2
 
     TAU = 1 - RHO
 

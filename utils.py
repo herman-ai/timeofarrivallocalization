@@ -32,23 +32,17 @@ OMEGA = 2 * pi * FREQUENCY
 speed = 3. * 10
 F = 1000.   #Field size
 H = 100.
-NUM_SENSORS = 20
+NUM_SENSORS = 10
 MU_0 = 4 * pi * 10 ** (-7)
 MU_A = MU_0
 MU_S = 1.0084 * MU_0
 EPSILON_0 = 8.85 * 10 ** (-12)
-EPSILON_A = EPSILON_0
+EPSILON_AIR = EPSILON_0
 
-EPSILON_S_REAL_ARRAY = [2.361970519728 * EPSILON_0, \
-                        5.08697889259241 * EPSILON_0, \
-                        # 9.94478245828631 * EPSILON_0, \
-                        16.4109595611802 * EPSILON_0, \
-                        24.4855102012741 * EPSILON_0]
-EPSILON_S_IMG_ARRAY = [0.096670930496 * EPSILON_0, \
-                        0.4413468113884 * EPSILON_0, \
-                        # 1.2301940303228 * EPSILON_0, \
-                        2.36876126519685 * EPSILON_0, \
-                        3.85704851601056 * EPSILON_0]
+EPSILON_SOIL = {0: {"real": 2.361970519728 * EPSILON_0, "img": 0.096670930496 * EPSILON_0},
+           1: {"real": 5.08697889259241 * EPSILON_0, "img": 0.4413468113884 * EPSILON_0},
+            2: {"real": 16.4109595611802 * EPSILON_0, "img": 2.36876126519685 * EPSILON_0},
+            3: {"real": 24.4855102012741 * EPSILON_0, "img": 3.85704851601056 * EPSILON_0}}
 
 
 """
