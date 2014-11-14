@@ -47,7 +47,11 @@ for epsilon_index in range(1):
             distance = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 +\
                     (anchor[1] - xyzOneSensorActual[1]) ** 2 +\
                     (anchor[2] - xyzOneSensorActual[2]) ** 2)
-            observed[i] = distance / speed + random()/40
+            power = p_average_soil2soil(distance, ALPHA_SOIL)
+            if (power > -110.0):
+                mean = distance / speed + random()/40
+                sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
+                observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
             i = i + 1
         obsTAnchors["below"] = obsTAnchors["below"] + (observed, )
 
@@ -73,13 +77,14 @@ for epsilon_index in range(1):
             dist = sqrt((xyzi[0] - xyzj[0]) ** 2 + (xyzi[1] - xyzj[1]) ** 2 +(xyzi[2] - xyzj[2]) ** 2)
             # TODO: continue the loop if the two nodes are too far apart
             signalPowerdB = p_average_soil2soil(dist, ALPHA_SOIL)
-            print "signal Power = ", signalPowerdB
+            #print "signal Power = ", signalPowerdB
 
-            observed = dist / speed + random()/400
-            mean = dist / speed
-            sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
-            print "mean = ", mean, ", sigma=", sigma
-            observedTime3DSS[str(i) + '-' + str(j)] = observed
+            if signalPowerdB > -110.0:
+                observed = dist / speed + random()/400
+                mean = dist / speed
+                sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
+                #print "mean = ", mean, ", sigma=", sigma
+                observedTime3DSS[str(i) + '-' + str(j)] = observed
     xyzFirstEst = ()
     for i in range(NUM_SENSORS):
         xyzInitialEstimate = (random() * F, random() * F, random() * (-H/40))

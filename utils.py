@@ -106,8 +106,11 @@ def differenceX1(est, obs):
 #Anchor to sensor
 def difference(est, obs):
     val = 0.0
-    for key in sorted(est):
-        for anchorNum in sorted(obs[key]):
+    for key in obs:  #above or below
+        #print "len = ", len(obs[key])
+        if key == "above" and len(obs[key]) != 4:
+            raise Exception('Not all anchor nodes signals were received')
+        for anchorNum in obs[key]:
             val = val + (est[key][anchorNum] - obs[key][anchorNum]) ** 2
     return val
 
