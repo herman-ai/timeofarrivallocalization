@@ -40,6 +40,7 @@ for epsilon_index in range(1):
 
     obsTAnchors = {"above": (), "below": ()}
 
+    #Anchor to sensor observations
     for xyzOneSensorActual in xyzAllActual:
         observed = {}
         i = 0
@@ -58,32 +59,33 @@ for epsilon_index in range(1):
         observed = {}
         i = 0
         for anchor in AnchorsXYZ["above"]:
-                distanceAir = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 + (anchor[1] - xyzOneSensorActual[1]) ** 2 + (anchor[2]) ** 2)
+                distanceAir = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 +\
+                    (anchor[1] - xyzOneSensorActual[1]) ** 2 +\
+                    (anchor[2]) ** 2)
                 distanceSoil = abs(xyzOneSensorActual[2])
-                mean = (distanceAir + distanceSoil) / speed
-                sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
-                #print "mean = ", (distanceAir + distanceSoil) / speed, ", sigma = ", sigma
-                observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                signalPowerdB = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
+                if signalPowerdB > -110.0:
+                    mean = (distanceAir + distanceSoil) / speed
+                    sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
+                    observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
                 i = i + 1
                 #observed = observed + ((distanceAir + distanceSoil) / speed + random()/400, )
         obsTAnchors["above"] = obsTAnchors["above"] + (observed, )
 
     observedTime3DSS = {}
 
+    # Sensor to sensor observations
     for i in range(len(xyzAllActual)):
         for j in range(i+1, len(xyzAllActual)):
             xyzi = xyzAllActual[i]
             xyzj = xyzAllActual[j]
             dist = sqrt((xyzi[0] - xyzj[0]) ** 2 + (xyzi[1] - xyzj[1]) ** 2 +(xyzi[2] - xyzj[2]) ** 2)
-            # TODO: continue the loop if the two nodes are too far apart
             signalPowerdB = p_average_soil2soil(dist, ALPHA_SOIL)
-            #print "signal Power = ", signalPowerdB
 
             if signalPowerdB > -110.0:
                 observed = dist / speed + random()/400
                 mean = dist / speed
                 sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
-                #print "mean = ", mean, ", sigma=", sigma
                 observedTime3DSS[str(i) + '-' + str(j)] = observed
     xyzFirstEst = ()
     for i in range(NUM_SENSORS):
