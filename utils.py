@@ -1,7 +1,9 @@
 from math import pi
 from math import log10
 from math import sqrt
+
 import matplotlib.pyplot as plt
+
 
 from matplotlib import rc
 import os
@@ -24,7 +26,8 @@ PA_0 = 38 # 38 dBm
 PS_0 = 10  # 19 dBm
 LAMBDA = 0.7
 N_0 = -110.0  #dBm
-T_S = 10.0 ** (-5)
+T_S = 10.0 ** (-10)
+DELTA_T = 0.02   #2 nano seconds
 FREQUENCY = 433 * 10 ** 6
 BETA_SQ = FREQUENCY ** 2
 OMEGA = 2 * pi * FREQUENCY

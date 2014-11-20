@@ -52,7 +52,8 @@ for epsilon_index in range(1):
             if (power > -110.0):
                 mean = distance / speed + random()/40
                 sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
-                observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)
             i = i + 1
         obsTAnchors["below"] = obsTAnchors["below"] + (observed, )
 
@@ -67,7 +68,8 @@ for epsilon_index in range(1):
                 if signalPowerdB > -110.0:
                     mean = (distanceAir + distanceSoil) / speed
                     sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
-                    observed[i] = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                    ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                    observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)
                 i = i + 1
                 #observed = observed + ((distanceAir + distanceSoil) / speed + random()/400, )
         obsTAnchors["above"] = obsTAnchors["above"] + (observed, )
@@ -83,10 +85,11 @@ for epsilon_index in range(1):
             signalPowerdB = p_average_soil2soil(dist, ALPHA_SOIL)
 
             if signalPowerdB > -110.0:
-                observed = dist / speed + random()/400
                 mean = dist / speed
                 sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
-                observedTime3DSS[str(i) + '-' + str(j)] = observed
+                observed = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
+                observedTime3DSS[str(i) + '-' + str(j)] = numpy.random.uniform(observed-DELTA_T, observed+DELTA_T)
+    # Estimation
     xyzFirstEst = ()
     for i in range(NUM_SENSORS):
         xyzInitialEstimate = (random() * F, random() * F, random() * (-H/40))
