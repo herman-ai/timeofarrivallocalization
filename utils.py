@@ -131,7 +131,7 @@ def differenceAnchorsToAllSensor(est, obs):
             i = i + 1
     return val
 
-def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
+def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil, speed_soil):
 
     xyzAll = ()
     for i in range(len(arg)/3):
@@ -152,7 +152,7 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
             distance = sqrt((anchor[0] - xyzA[0]) ** 2 +\
                 (anchor[1] - xyzA[1]) ** 2 +\
                 (anchor[2] - xyzA[2]) ** 2)
-            estimated[anchorId] = distance / speed
+            estimated[anchorId] = distance / speed_soil
             anchorId = anchorId + 1
         estimatedTime3D["below"] = estimatedTime3D["below"] + (estimated, )
 
@@ -161,7 +161,7 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
         for anchor in anchors["above"]:
             distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
             distanceSoil = abs(xyzA[2])
-            estimated[anchorId] = (distanceAir + distanceSoil) / speed
+            estimated[anchorId] = distanceAir / speed + distanceSoil / speed_soil
             anchorId = anchorId + 1
         estimatedTime3D["above"] = estimatedTime3D["above"] + (estimated, )
 
@@ -175,13 +175,13 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil):
             xyzi = xyzAll[i]
             xyzj = xyzAll[j]
             dist = sqrt((xyzi[0] - xyzj[0]) ** 2 + (xyzi[1] - xyzj[1]) ** 2 +(xyzi[2] - xyzj[2]) ** 2)
-            est = dist / speed
+            est = dist / speed_soil
             estSS[str(i) + str(j)] = est
     return differenceAnchorsToAllSensor(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
 
 
 #for estimating location of one sensor
-def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil2Soil):
+def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil2Soil, speed_soil):
 
     xyzA = arg
     estimatedTime3D = {"above": (), "below": ()}
@@ -192,7 +192,7 @@ def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil
         i = 0
         for anchor in anchors["below"]:
             distance = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2] - xyzA[2]) ** 2)
-            estimated[i] = distance / speed
+            estimated[i] = distance / speed_soil
             i = i + 1
         estimatedTime3D["below"] = estimated
         estimated = {}
@@ -200,7 +200,7 @@ def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil
         for anchor in anchors["above"]:
             distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
             distanceSoil = abs(xyzA[2])
-            estimated[i] = (distanceAir + distanceSoil) / speed
+            estimated[i] = distanceAir / speed + distanceSoil / speed_soil
             i = i + 1
         estimatedTime3D["above"] = estimated
 

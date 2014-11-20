@@ -29,6 +29,14 @@ for epsilon_index in range(1):
 
     TAU = 1 - RHO
 
+    speed_soil = ( \
+        sqrt( \
+        (MU_S * EPSILON_S_REAL / 2 ) * (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) + 1)\
+        ) \
+    ) \
+        ** (-1) * (10 ** (-7))
+
+
     xyzAllActual = ()
     for i in range(NUM_SENSORS):
         xyzAllActual = xyzAllActual + ((random() * F, random() * F, random() * (-H/40)), )
@@ -50,7 +58,7 @@ for epsilon_index in range(1):
                     (anchor[2] - xyzOneSensorActual[2]) ** 2)
             power = p_average_soil2soil(distance, ALPHA_SOIL)
             if (power > -110.0):
-                mean = distance / speed + random()/40
+                mean = distance / speed_soil + random()/40
                 sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
                 ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
                 observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)
@@ -66,7 +74,7 @@ for epsilon_index in range(1):
                 distanceSoil = abs(xyzOneSensorActual[2])
                 signalPowerdB = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
                 if signalPowerdB > -110.0:
-                    mean = (distanceAir + distanceSoil) / speed
+                    mean = distanceAir / speed + distanceSoil / speed_soil
                     sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
                     ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
                     observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)
@@ -85,7 +93,7 @@ for epsilon_index in range(1):
             signalPowerdB = p_average_soil2soil(dist, ALPHA_SOIL)
 
             if signalPowerdB > -110.0:
-                mean = dist / speed
+                mean = dist / speed_soil
                 sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
                 observed = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
                 observedTime3DSS[str(i) + '-' + str(j)] = numpy.random.uniform(observed-DELTA_T, observed+DELTA_T)
@@ -93,7 +101,7 @@ for epsilon_index in range(1):
     xyzFirstEst = ()
     for i in range(NUM_SENSORS):
         xyzInitialEstimate = (random() * F, random() * F, random() * (-H/40))
-        res = minimize(timeOfArrivalMatcherAnchorToOneSensor, xyzInitialEstimate, args=(i, obsTAnchors, AnchorsXYZ, observedTime3DSS), method='Nelder-Mead', \
+        res = minimize(timeOfArrivalMatcherAnchorToOneSensor, xyzInitialEstimate, args=(i, obsTAnchors, AnchorsXYZ, observedTime3DSS, speed_soil), method='Nelder-Mead', \
         options = {"maxiter":1e6})
 
     	e = res.x
@@ -107,7 +115,7 @@ for epsilon_index in range(1):
         print "*****"
     print xyzAllActual
     print "xyzFirstEst = ", xyzFirstEst
-    res = minimize(timeOfArrialMatcher3DX, xyzFirstEst, args=(obsTAnchors, AnchorsXYZ, observedTime3DSS), method='Nelder-Mead', options = {"maxiter":1e6})
+    res = minimize(timeOfArrialMatcher3DX, xyzFirstEst, args=(obsTAnchors, AnchorsXYZ, observedTime3DSS, speed_soil), method='Nelder-Mead', options = {"maxiter":1e6})
 
     e = [(res.x[i * 3: (i+1) * 3]) for i in range(NUM_SENSORS)]
 
