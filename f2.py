@@ -129,6 +129,8 @@ for epsilon_index in range(1):
     + r"$\alpha^{(s)}$ = " + '{0:.3g}'.format(ALPHA_SOIL) + r" N/m\\\\"
 
     plot([xyz[0] for xyz in xyzAllActual], [xyz[1] for xyz in xyzAllActual], \
+         [xyz[0] for xyz in xyzFirstEst], [xyz[1] for xyz in xyzFirstEst], \
         [xyz[0] for xyz in e], [xyz[1] for xyz in e], EPSILON_S_REAL, EPSILON_S_IMG, params_text, "X", "Y", [-1, F + 1 , -1, F + 1])
     plot([xyz[0] for xyz in xyzAllActual], [xyz[2] for xyz in xyzAllActual], \
+        [xyz[0] for xyz in xyzFirstEst], [xyz[2] for xyz in xyzFirstEst], \
         [xyz[0] for xyz in e], [xyz[2] for xyz in e], EPSILON_S_REAL, EPSILON_S_IMG, params_text, "X", "Z", [-1, F + 1, -H/40, 0])

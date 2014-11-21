@@ -76,29 +76,6 @@ def sigma_soil2Soil(d, ALPHA_SOIL):
   sigma = (8 * (pi ** 2) * specular_power * T_S * BETA_SQ / TOTAL_NOISE) ** -1
   return sigma
 
-
-def plot(xActual, yActual, xEst, yEst, EPSILON_S_REAL, EPSILON_S_IMG, params_text, xLabel, yLabel, limits):
-    plt.plot(xActual, yActual, 'b.', label = "Actual")
-    plt.plot(xEst, yEst, 'gx', label = "Estimated")
-    plt.axis(limits)
-    plt.grid(b=True, which='both', color='0.65',linestyle='-')
-
-    plt.xlabel(xLabel)
-    plt.ylabel(yLabel)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-
-    plt.text(plt.xlim()[1]*1.3, plt.ylim()[0],  params_text,
-        horizontalalignment='center',
-        verticalalignment='bottom')
-
-    FILENAME_PREFIX = "TOA_" + "EPSILON_S_REAL_" + \
-        '{0:.3g}'.format(EPSILON_S_REAL/EPSILON_0) + \
-        "EPSILON_S_IMG_" + \
-        '{0:.3g}'.format(EPSILON_S_IMG/EPSILON_0)
-
-    plt.savefig(FILENAME_PREFIX + '_' + xLabel + yLabel + '.pdf', bbox_inches='tight', pad_inches = 0.5)
-    plt.clf()
-
 # for soil to soil
 def differenceX1(est, obs):
     val = 0.0
@@ -205,3 +182,27 @@ def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil
         estimatedTime3D["above"] = estimated
 
     return difference(estimatedTime3D, {key:tObs[key][sensorId] for key in tObs})
+
+
+def plot(xActual, yActual, xFirstEst, yFirstEst, xEst, yEst, EPSILON_S_REAL, EPSILON_S_IMG, params_text, xLabel, yLabel, limits):
+    plt.plot(xActual, yActual, 'b.', label = "Actual")
+    plt.plot(xFirstEst, yFirstEst, 'rx', label = "Estimated using Anchor to Sensor model only")
+    plt.plot(xEst, yEst, 'gx', label = "Estimated")
+    plt.axis(limits)
+    plt.grid(b=True, which='both', color='0.65',linestyle='-')
+
+    plt.xlabel(xLabel)
+    plt.ylabel(yLabel)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    plt.text(plt.xlim()[1]*1.3, plt.ylim()[0],  params_text,
+        horizontalalignment='center',
+        verticalalignment='bottom')
+
+    FILENAME_PREFIX = "TOA_" + "EPSILON_S_REAL_" + \
+        '{0:.3g}'.format(EPSILON_S_REAL/EPSILON_0) + \
+        "EPSILON_S_IMG_" + \
+        '{0:.3g}'.format(EPSILON_S_IMG/EPSILON_0)
+
+    plt.savefig(FILENAME_PREFIX + '_' + xLabel + yLabel + '.pdf', bbox_inches='tight', pad_inches = 0.5)
+    plt.clf()
