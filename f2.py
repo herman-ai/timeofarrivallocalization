@@ -1,8 +1,3 @@
-"""
-TODO: 1. Remove ToA observations from other sensor nodes that are too far away.
-2. Work on an iterative solution
-"""
-
 from scipy.optimize import minimize
 from math import sqrt
 from random import random
@@ -14,8 +9,8 @@ from utils import *
 
 seed()
 
-for epsilon_index in range(1):
-#for epsilon_index in range(len(EPSILON_S_REAL_ARRAY)):
+#for epsilon_index in range(1):
+for epsilon_index in range(4):
     print "********************************************"
     print "EPSILON_INDEX = ", epsilon_index
     print "********************************************"
@@ -127,6 +122,29 @@ for epsilon_index in range(1):
     params_text = r"\noindent$\epsilon_s'$ = " + '{0:.3g}'.format(EPSILON_S_REAL/EPSILON_0) + r"\\\\" \
     + r"$\epsilon_s''$ = " + '{0:.3g}'.format(EPSILON_S_IMG/EPSILON_0) + r"\\\\" \
     + r"$\alpha^{(s)}$ = " + '{0:.3g}'.format(ALPHA_SOIL) + r" N/m\\\\"
+
+    xActual = [xyz[0] for xyz in xyzAllActual]
+    yActual = [xyz[1] for xyz in xyzAllActual]
+    zActual = [xyz[2] for xyz in xyzAllActual]
+
+    xFirstEst = [xyz[0] for xyz in xyzFirstEst]
+    yFirstEst = [xyz[1] for xyz in xyzFirstEst]
+    zFirstEst = [xyz[2] for xyz in xyzFirstEst]
+
+    xEst = [xyz[0] for xyz in e]
+    yEst = [xyz[1] for xyz in e]
+    zEst = [xyz[2] for xyz in e]
+
+    err = 0.0
+    for i in range(len(xActual)):
+        d = (xEst[i] - xActual[i]) ** 2 + \
+            (yEst[i] - yActual[i]) ** 2 + \
+            (zEst[i] - zActual[i]) ** 2
+        err = err + sqrt(d)
+
+    #print "DELTA_T = ", DELTA_T, "error = ", err
+    #print "T_S = ", T_S, "error = ", err
+    print "epsilon_index = ", epsilon_index, "error = ", err
 
     plot([xyz[0] for xyz in xyzAllActual], [xyz[1] for xyz in xyzAllActual], \
          [xyz[0] for xyz in xyzFirstEst], [xyz[1] for xyz in xyzFirstEst], \
