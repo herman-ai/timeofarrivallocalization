@@ -17,7 +17,7 @@ xyzAllActual = ()
 for i in range(NUM_SENSORS):
     xyzAllActual = xyzAllActual + ((random() * F, random() * F, random() * (-H/40)), )
 
-epsilon_index = 1
+epsilon_index = 3
 
 xEstSamples = [[] for _ in range(NUM_SENSORS)]
 yEstSamples = [[] for _ in range(NUM_SENSORS)]
@@ -150,6 +150,8 @@ for ctr in range(1000):
             (yEst[i] - yActual[i]) ** 2 + \
             (zEst[i] - zActual[i]) ** 2
         err = err + sqrt(d)
+    #if err > 10.0:
+    #    continue
 
     #print "DELTA_T = ", DELTA_T, "error = ", err
     #print "T_S = ", T_S, "error = ", err
@@ -171,3 +173,8 @@ print "X STD = ", numpy.mean([numpy.std(x) for x in xEstSamples])
 print "Y STD = ", numpy.mean([numpy.std(x) for x in yEstSamples])
 print "Z STD = ", numpy.mean([numpy.std(x) for x in zEstSamples])
 print "error = ", numpy.mean(errors)
+
+print "max xEst STD = ", numpy.max([numpy.std(x) for x in xEstSamples])
+print "max yEst STD = ", numpy.max([numpy.std(x) for x in yEstSamples])
+print "max zEst STD = ", numpy.max([numpy.std(x) for x in zEstSamples])
+print "max error = ", numpy.max(errors)
