@@ -1,6 +1,3 @@
-"""
-Next step: Compute standard deviation of the estimates computed.
-"""
 
 from scipy.optimize import minimize
 from math import sqrt
@@ -24,7 +21,7 @@ yEstSamples = [[] for _ in range(NUM_SENSORS)]
 zEstSamples = [[] for _ in range(NUM_SENSORS)]
 errors = []
 
-for ctr in range(1000):
+for ctr in range(1):
     #print "********************************************"
     #print "EPSILON_INDEX = ", epsilon_index
     #print "********************************************"
@@ -89,7 +86,9 @@ for ctr in range(1000):
     observedTime3DSS = {}
 
     # Sensor to sensor observations
+    f = open("SensorNeighbors_" + str(ctr) + "_" + str(NUM_SENSORS) + ".csv", "w")
     for i in range(len(xyzAllActual)):
+        f.write(str(i))
         for j in range(i+1, len(xyzAllActual)):
             xyzi = xyzAllActual[i]
             xyzj = xyzAllActual[j]
@@ -97,10 +96,13 @@ for ctr in range(1000):
             signalPowerdB = p_average_soil2soil(dist, ALPHA_SOIL)
 
             if signalPowerdB > -110.0:
+                f.write("," + str(j))
                 mean = dist / speed_soil
                 sigma = sigma_soil2Soil(dist, ALPHA_SOIL)
                 observed = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
                 observedTime3DSS[str(i) + '-' + str(j)] = numpy.random.uniform(observed-DELTA_T, observed+DELTA_T)
+        f.write("\n")
+    f.close()
     # Estimation
     xyzFirstEst = ()
     for i in range(NUM_SENSORS):
@@ -162,6 +164,14 @@ for ctr in range(1000):
         yEstSamples[i].append(e[i][1])
         zEstSamples[i].append(e[i][2])
 
+    f = open("estimates" + str(ctr) + "_" + str(NUM_SENSORS) +".csv", "w")
+    f.write("X,Y,Z,X (est1),Y(est1),Z(est1),X(est),Y(est),Z(est)\n")
+    for i in range(NUM_SENSORS):
+        f.write(str(xyzAllActual[i][0]) + "," + str(xyzAllActual[i][1]) + "," + str(xyzAllActual[i][2]))
+        f.write("," + str(xyzFirstEst[i][0]) + "," + str(xyzFirstEst[i][1]) + "," + str(xyzFirstEst[i][2]))
+        f.write("," + str(e[i][0]) + "," + str(e[i][1]) + "," + str(e[i][2]) + "\n")
+    f.close()
+
     #plot([xyz[0] for xyz in xyzAllActual], [xyz[1] for xyz in xyzAllActual], \
     #        [xyz[0] for xyz in xyzFirstEst], [xyz[1] for xyz in xyzFirstEst], \
     #    [xyz[0] for xyz in e], [xyz[1] for xyz in e], EPSILON_S_REAL, EPSILON_S_IMG, params_text, "X", "Y", [-1, F + 1 , -1, F + 1])
@@ -172,9 +182,9 @@ for ctr in range(1000):
 print "X STD = ", numpy.mean([numpy.std(x) for x in xEstSamples])
 print "Y STD = ", numpy.mean([numpy.std(x) for x in yEstSamples])
 print "Z STD = ", numpy.mean([numpy.std(x) for x in zEstSamples])
-print "error = ", numpy.mean(errors)
+print "error = ", numpy.mean(errors) / NUM_SENSORS
 
 print "max xEst STD = ", numpy.max([numpy.std(x) for x in xEstSamples])
 print "max yEst STD = ", numpy.max([numpy.std(x) for x in yEstSamples])
 print "max zEst STD = ", numpy.max([numpy.std(x) for x in zEstSamples])
-print "max error = ", numpy.max(errors)
+print "max error = ", numpy.max(errors) / NUM_SENSORS
