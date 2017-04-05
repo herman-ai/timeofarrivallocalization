@@ -26,16 +26,16 @@ PA_0 = 38 # 38 dBm
 PS_0 = 10  # 19 dBm
 LAMBDA = 0.7
 N_0 = -110.0  #dBm
-T_S = 10.0 ** (-5)
-DELTA_T = 0.08   #2 nano seconds
-FREQUENCY = 433 * 10 ** 6
+T_S = 10.0 ** (-3)
+
+FREQUENCY = 833 * 10 ** 6
 BETA_SQ = FREQUENCY ** 2
 OMEGA = 2 * pi * FREQUENCY
 
 speed = 3. * 10
-F = 100.   #Field size
+F = 50.   #Field size
 H = 100.
-NUM_SENSORS = 25
+NUM_SENSORS = 5
 MU_0 = 4 * pi * 10 ** (-7)
 MU_A = MU_0
 MU_S = 1.0084 * MU_0
@@ -158,7 +158,7 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil, speed_soil):
 
 
 #for estimating location of one sensor
-def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil2Soil, speed_soil):
+def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, speed_soil):
 
     xyzA = arg
     estimatedTime3D = {"above": (), "below": ()}
@@ -174,6 +174,7 @@ def timeOfArrivalMatcherAnchorToOneSensor(arg, sensorId, tObs, anchors, tObsSoil
         estimatedTime3D["below"] = estimated
         estimated = {}
         i = 0
+        # print "Number of anchors above = {}".format(len(anchors["above"]))
         for anchor in anchors["above"]:
             distanceAir = sqrt((anchor[0] - xyzA[0]) ** 2 + (anchor[1] - xyzA[1]) ** 2 + (anchor[2]) ** 2)
             distanceSoil = abs(xyzA[2])
