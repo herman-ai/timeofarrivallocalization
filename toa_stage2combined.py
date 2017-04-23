@@ -96,19 +96,30 @@ def toa_neg_log_likelihood_soil2soil(xyz, toa_observed_from_other_sensors_dir,
             if toa_observed_from_other_sensors_dir[i, j] > 0 and toa_observed_from_other_sensors_reflected[i,j] > 0:
                 dist = np.sqrt(np.sum((xyz[i] - xyz[j]) ** 2))
                 mean_toa = dist / speed_soil
-                sigma2_toa = sigma_soil2Soil(dist, ALPHA_SOIL)**2
+                sigma2_toa_dir = sigma_soil2Soil(dist, ALPHA_SOIL)**2
                 # neg_log_likelihood += ((toa_observed_from_other_sensors_dir[i, j] - mean_toa) ** 2) /sigma2_toa
                 # neg_log_likelihood += 0.5*np.log(sigma2_toa)
 
-                d1 = np.sqrt((xyz[i, 2]) ** 2 + \
-                             ((xyz[i, 0] - xyz[j, 0]) ** 2 + \
-                              (xyz[i, 1] - xyz[j, 1]) ** 2) *
-                             ((xyz[i, 2] / (xyz[i, 2] + xyz[j, 2])) ** 2))
+                if xyz[i,2] == 0 or xyz[j,2] == 0:
+                    continue
+                #
+                import warnings
+                warnings.filterwarnings('error')
+                try:
 
-                d2 = np.sqrt((xyz[j, 2]) ** 2 + \
-                             ((xyz[i, 0] - xyz[j, 0]) ** 2 + \
-                              (xyz[i, 1] - xyz[j, 1]) ** 2) *
-                             ((xyz[j, 2] / (xyz[i, 2] + xyz[j, 2])) ** 2))
+                    d1 = np.sqrt((xyz[i, 2]) ** 2 + \
+                                 ((xyz[i, 0] - xyz[j, 0]) ** 2 + \
+                                  (xyz[i, 1] - xyz[j, 1]) ** 2) *
+                                 ((xyz[i, 2] / (xyz[i, 2] + xyz[j, 2])) ** 2))
+
+                    d2 = np.sqrt((xyz[j, 2]) ** 2 + \
+                                 ((xyz[i, 0] - xyz[j, 0]) ** 2 + \
+                                  (xyz[i, 1] - xyz[j, 1]) ** 2) *
+                                 ((xyz[j, 2] / (xyz[i, 2] + xyz[j, 2])) ** 2))
+                except Warning:
+                    print("xyz[i,2] = {}, xyz[j,2]={}".format(xyz[i, 2], xyz[j, 2]))
+                    print(xyz[i, 2] == 0 or xyz[j, 2] == 0)
+                    print("warning")
 
                 dist = d1 + d2
                 mean_toa_ref = dist / speed_soil
@@ -118,13 +129,16 @@ def toa_neg_log_likelihood_soil2soil(xyz, toa_observed_from_other_sensors_dir,
 
                 t = np.asarray([toa_observed_from_other_sensors_dir[i, j], toa_observed_from_other_sensors_reflected[i, j]]).reshape(2,1)
                 t_bar = np.asarray([mean_toa, mean_toa_ref])
-                sigma = np.asarray([[1/sigma2_toa[0],0], [0,1/sigma2_toa_ref[0]]])
+                sigma = np.asarray([[1/sigma2_toa_dir[0],0], [0,1/sigma2_toa_ref[0]]])
 
                 a = sigma.dot(t-t_bar)
                 b = (t-t_bar).T
                 # neg_log_likelihood += ((t-t_bar).dot(sigma)).dot((t-t_bar).T)
                 neg_log_likelihood += b.dot(a)
-                neg_log_likelihood -= 0.5*np.log(np.linalg.det(sigma))
+                neg_log_likelihood += 0.5*np.log(np.linalg.det(sigma))
+                # neg_log_likelihood += 0.5 * np.log(sigma2_toa_dir)
+                # neg_log_likelihood += 0.5 * np.log(sigma2_toa_ref)
+
             else:
                 raise Exception("test")
 
@@ -213,7 +227,7 @@ if __name__=="__main__":
                                                         toa_observed_from_other_sensors_reflected)
     print("squared error at seed = {}".format(sq_error_at_seed))
 
-    bnds = (((None, None),)*2+((-100,0),))*NUM_SENSORS
+    bnds = (((None, None),)*2+((-100,1e-5),))*NUM_SENSORS
 
     result = minimize(toa_neg_log_likelihood_soil2soil,
                       xyz0*(1,1,z_scale),
