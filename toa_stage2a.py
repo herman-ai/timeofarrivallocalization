@@ -74,7 +74,7 @@ def toa_neg_log_likelihood_soil2soil_2a(xyz, toa_observed_from_other_sensors):
             mean_toa = dist / speed_soil
             sigma2_toa = sigma_soil2Soil(dist, ALPHA_SOIL)**2
             neg_log_likelihood += ((toa_observed_from_other_sensors[i, j] - mean_toa) ** 2) /sigma2_toa
-            # sigma_toa = sigma_soil2Soil(dist, ALPHA_SOIL)
+            neg_log_likelihood += 0.5*np.log(sigma2_toa)
     return neg_log_likelihood
 
 if __name__=="__main__":

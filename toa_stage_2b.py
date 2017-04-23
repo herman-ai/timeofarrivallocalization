@@ -46,7 +46,7 @@ def p_average_soil2soil_reflected(d, ALPHA_SOIL):
     pathLoss = 20 * np.log10(4 * pi * d / LAMBDA)
     return PS_0 - d * ALPHA_SOIL - pathLoss - RHO #in dBm
 
-def sigma_soil2Soil(d, ALPHA_SOIL):
+def sigma_soil2Soil_reflected(d, ALPHA_SOIL):
   specularPowerdB = p_average_soil2soil_reflected(d, ALPHA_SOIL)
   specular_power = 10 ** ((specularPowerdB - 30) / 10.0)
   TOTAL_NOISE = 10 ** ((N_0 - 30.0) / 10.0)
@@ -79,9 +79,11 @@ def toa_squared_error_soil2soil_reflected(xyz, toa_observed_from_other_sensors):
 
 def toa_neg_log_likelihood_soil2soil_reflected(xyz, toa_observed_from_other_sensors):
     xyz = xyz.reshape(-1,3)*(1,1,1/z_scale)
-    sq_error = 0.
+    neg_log_likelihood = 0.
     for i in range(xyz.shape[-2]):
         for j in range(xyz.shape[-2]):
+            if i == j:
+                continue
             if not toa_observed_from_other_sensors[i,j] > 0:
                 continue
             # print("i={},j={}".format(i,j))
@@ -97,9 +99,10 @@ def toa_neg_log_likelihood_soil2soil_reflected(xyz, toa_observed_from_other_sens
 
             dist = d1 + d2
             mean_toa =dist/speed_soil
-            sigma2_toa = sigma_soil2Soil(dist, ALPHA_SOIL) ** 2
-            sq_error += ((toa_observed_from_other_sensors[i,j]-mean_toa)**2)/sigma2_toa
-    return sq_error
+            sigma2_toa = sigma_soil2Soil_reflected(dist, ALPHA_SOIL) ** 2
+            neg_log_likelihood += ((toa_observed_from_other_sensors[i,j]-mean_toa)**2)/sigma2_toa
+            neg_log_likelihood += 0.5*np.log(sigma2_toa)
+    return neg_log_likelihood
 
 #Reflected path
 if __name__ == "__main__":
@@ -132,7 +135,7 @@ if __name__ == "__main__":
 
             if power > N_0:
                 mean_toa = dist / speed_soil
-                sigma_toa = sigma_soil2Soil(dist, ALPHA_SOIL=ALPHA_SOIL)
+                sigma_toa = sigma_soil2Soil_reflected(dist, ALPHA_SOIL=ALPHA_SOIL)
                 ob = np.random.normal(loc=mean_toa, scale=sigma_toa, size=1)[0]
                 toa_observed_from_other_sensors[i,j] = ob
     #
