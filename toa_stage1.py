@@ -18,7 +18,7 @@ N_0 = -110.0  #dBm
 T_S = 10.0 ** (-3)
 
 # Scaling constants for optimization stability
-scale = 100.
+z_scale = 100.
 scale_lst_sq_obj_fn = 10**14
 
 FREQUENCY = 833 * 10 ** 6
@@ -50,13 +50,13 @@ speed_soil = ( \
     (MU_S * EPSILON_S_REAL / 2 ) * (np.sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) + 1)\
     ) ) ** (-1)
 
-def p_average_air2soil(d_a, d_s, ALPHA_SOIL, TAU):
-  pathLossAir = 20 * log10(4 * pi * d_a / LAMBDA)
+def p_average_air2soil(d_a, d_s, ALPHA_SOIL):
+  pathLossAir = 20 * np.log10(4 * pi * d_a / LAMBDA)
   pathLossSoil = ALPHA_SOIL * d_s
   return PA_0 - pathLossAir - pathLossSoil
 
-def sigma_air2Soil(d_a, d_s, ALPHA_SOIL, TAU):
-  specularPowerdB = p_average_air2soil(d_a, d_s, ALPHA_SOIL, TAU)
+def sigma_air2Soil(d_a, d_s, ALPHA_SOIL):
+  specularPowerdB = p_average_air2soil(d_a, d_s, ALPHA_SOIL)
   specular_power = 10 ** ((specularPowerdB - 30) / 10.0)
   TOTAL_NOISE = 10 ** ((N_0 - 30.0) / 10.0)
   sigma = np.sqrt(8 * (pi ** 2) * specular_power * T_S * BETA_SQ / TOTAL_NOISE) ** -1
@@ -64,16 +64,40 @@ def sigma_air2Soil(d_a, d_s, ALPHA_SOIL, TAU):
 
 
 # Least squares objective function
-def toa_squared_error(xyz, toa_observed_from_anchors, anchor_locations, speed_soil):
+def toa_squared_error_air2soil(xyz, toa_observed_from_anchors, anchor_locations, speed_soil):
 
-    xyz=xyz.reshape(-1,3)*(1,1,1/scale)
+    xyz=xyz.reshape(-1,3)*(1, 1, 1 / z_scale)
     sq_error = 0.
     for i in range(xyz.shape[-2]):
         distance_air = np.sqrt(np.sum((xyz[i,:2]-anchor_locations[:,:2])**2, axis=1)+anchor_locations[:,2]**2)
         distance_soil = abs(xyz[i,2])
-        estimated_toa = distance_air / speed + distance_soil / speed_soil
-        sq_error += np.sum((toa_observed_from_anchors[i,:]-estimated_toa)**2)*scale_lst_sq_obj_fn
+        mean_toa = distance_air / speed + distance_soil / speed_soil
+        sq_error += np.sum((toa_observed_from_anchors[i,:]-mean_toa)**2)*scale_lst_sq_obj_fn
     return sq_error
+
+def toa_neg_log_likelihood_air2soil(xyz, toa_observed_from_anchors, anchor_locations, speed_soil):
+    xyz = xyz.reshape(-1, 3) * (1, 1, 1 / z_scale)
+    neg_log_likelihood = 0
+    for i in range(xyz.shape[-2]):
+        distance_air = np.sqrt(
+            np.sum((xyz[i, :2] - anchor_locations[:, :2]) ** 2, axis=1) + anchor_locations[:, 2] ** 2)
+        distance_soil = abs(xyz[i, 2])
+        mean_toa = distance_air / speed + distance_soil / speed_soil
+        # mean_power = p_average_air2soil(distance_air, distance_soil, ALPHA_SOIL)
+        sigma2_toa = sigma_air2Soil(distance_air, distance_soil, ALPHA_SOIL)**2
+        # sigma2_toa = 1
+        # sigma_toa = (8 * pi*pi* T_S * BETA_SQ * mean_power / N_0)**(-1)
+        neg_log_likelihood += np.sum(((toa_observed_from_anchors[i,:]-mean_toa)**2)/sigma2_toa)
+        neg_log_likelihood += np.sum(np.log(sigma2_toa))
+    return neg_log_likelihood
+
+
+#TODO soil to soil
+def toa_squared_error_soil2soil(xyz, toa_observed_from_neighbors, speed_soil):
+    pass
+
+def toa_neg_log_likelihood_soil2soil(xyz, toa_observed_from_neighbors, speed_soil):
+    pass
 
 if __name__ == "__main__":
     AnchorsXYZ = np.asarray([[0., 0., H],
@@ -88,6 +112,7 @@ if __name__ == "__main__":
     print("speed = {}, in soil = {}".format(speed, speed_soil))
     print(AnchorsXYZ)
     actual_s_locations = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
+    print("actual_s_locations.shape = {}".format(actual_s_locations.shape))
     print("Actual sensor location = {}".format(actual_s_locations))
     xyz0 = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
     print("Guessed sensor location = {}".format(xyz0))
@@ -104,14 +129,15 @@ if __name__ == "__main__":
                                (anchor[1] - xyzOneSensorActual[1]) ** 2 + \
                                (anchor[2]) ** 2)
             distanceSoil = abs(xyzOneSensorActual[2])
-            power = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
-
+            power = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL)
+            # print("power = {} dB".format(power))
             if (power > -110.0):
                 # Only use the time of arrival measurement if the power is meaningful
                 # mean = distance / speed_soil # TODO Introduce better randomness in the calculation
                 # sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
+
                 mean = distanceAir / speed + distanceSoil / speed_soil
-                sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
+                sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL)
                 print("Sampling t with mean = {} and sigma = {}".format(mean, sigma))
                 ob = np.random.normal(loc=mean, scale=sigma, size=1)[0]
                 toa_from_anchors.append(ob)
@@ -125,21 +151,33 @@ if __name__ == "__main__":
     print("toa_observed_from_anchors = {}".format(toa_observed_from_anchors))
 
 
-    neg_likelihood = toa_squared_error(actual_s_locations * (1, 1, scale),
-                                       toa_observed_from_anchors,
-                                       AnchorsXYZ,
-                                       speed_soil)
+    neg_likelihood = toa_neg_log_likelihood_air2soil(actual_s_locations * (1, 1, z_scale),
+                                                     toa_observed_from_anchors,
+                                                     AnchorsXYZ,
+                                                     speed_soil)
 
     print("neg_likelihood at minima = {}".format(neg_likelihood))
+    neg_likelihood = toa_neg_log_likelihood_air2soil(xyz0 * (1, 1, z_scale),
+                                                     toa_observed_from_anchors,
+                                                     AnchorsXYZ,
+                                                     speed_soil)
+
+    print("neg_likelihood at other = {}".format(neg_likelihood))
+
+
     bnds = (((None, None),)*2+((-100,0),))*NUM_SENSORS
-    result = minimize(toa_squared_error,
-                      xyz0 * (1,1,scale),
+    result = minimize(toa_neg_log_likelihood_air2soil,
+                      xyz0 * (1, 1, z_scale),
                       args=(toa_observed_from_anchors, AnchorsXYZ, speed_soil),
                       # method="Nelder-Mead",
                       method="L-BFGS-B",
                       bounds=bnds,
                       options={"maxiter":1e6})
-    print(result.x.reshape(-1,3)*(1,1,1/scale))
-    print(actual_s_locations)
-    print(result.success)
+    estimated_locations = result.x.reshape(-1,3) * (1, 1, 1 / z_scale)
+    print("estimated locations = \n{}".format(estimated_locations))
+    print("actual locations = \n{}".format(actual_s_locations))
 
+    np.savetxt("data/est_stage1.csv", estimated_locations)
+    np.savetxt("data/act_sensor_loc.csv", actual_s_locations)
+
+    print(result.success)
