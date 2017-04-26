@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib import rc
 import os
+import numpy as np
 
 rc('text', usetex=True)
 rc('font', family='serif')
@@ -33,19 +34,27 @@ BETA_SQ = FREQUENCY ** 2
 OMEGA = 2 * pi * FREQUENCY
 
 speed = 3. * 10
-F = 50.   #Field size
-H = 100.
-NUM_SENSORS = 5
+
+F = 50.   #Field size, in m
+H = 100.    # Maximum dept of sensor node, in m
+NUM_SENSORS = 1
+
 MU_0 = 4 * pi * 10 ** (-7)
 MU_A = MU_0
 MU_S = 1.0084 * MU_0
 EPSILON_0 = 8.85 * 10 ** (-12)
 EPSILON_AIR = EPSILON_0
 
-EPSILON_SOIL = {0: {"real": 2.361970519728 * EPSILON_0, "img": 0.096670930496 * EPSILON_0},
-           1: {"real": 5.08697889259241 * EPSILON_0, "img": 0.4413468113884 * EPSILON_0},
-            2: {"real": 16.4109595611802 * EPSILON_0, "img": 2.36876126519685 * EPSILON_0},
-            3: {"real": 24.4855102012741 * EPSILON_0, "img": 3.85704851601056 * EPSILON_0}}
+EPSILON_SOIL = np.asarray((2.361970519728 + 0.096670930496j,
+                            5.08697889259241 + 0.4413468113884j,
+                            16.4109595611802 + 2.36876126519685j,
+                            24.4855102012741 + 3.85704851601056j)) * EPSILON_0
+
+
+# EPSILON_SOIL = {0: {"real": 2.361970519728 * EPSILON_0, "img": 0.096670930496 * EPSILON_0},
+#            1: {"real": 5.08697889259241 * EPSILON_0, "img": 0.4413468113884 * EPSILON_0},
+#             2: {"real": 16.4109595611802 * EPSILON_0, "img": 2.36876126519685 * EPSILON_0},
+#             3: {"real": 24.4855102012741 * EPSILON_0, "img": 3.85704851601056 * EPSILON_0}}
 
 
 """
@@ -155,6 +164,14 @@ def timeOfArrialMatcher3DX(arg, tObs, anchors, tObsSoil2Soil, speed_soil):
             est = dist / speed_soil
             estSS[str(i) + str(j)] = est
     return differenceAnchorsToAllSensor(estimatedTime3D, tObs) + differenceX1(estSS, tObsSoil2Soil)
+
+def timeOfArrivalMatcherAnchorsToSensors(xyz, toa_observed_from_anchors, anchor_locations, speed_soil):
+
+    distance_air = np.sqrt((xyz[:,:2]-toa_observed_from_anchors[:,:2])**2 + toa_observed_from_anchors[:,2]**2)
+    distance_soil = abs(xyz[:,2])
+
+    estimated_toa = distance_air / speed + distance_soil / speed_soil
+    return (toa_observed_from_anchors-estimated_toa)**2
 
 
 #for estimating location of one sensor

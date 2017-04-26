@@ -1,31 +1,38 @@
 
 from scipy.optimize import minimize
 from math import sqrt
-from random import random
+# import numpy as np
 from random import seed
-import numpy
 import csv
 import utils
-reload(utils)
+# reload(utils)
 from utils import *
 
-actual_s_locations = ()
-print "Number of sensors = {}".format(NUM_SENSORS)
-for i in range(NUM_SENSORS):
-    actual_s_locations += ((random() * F, random() * F, random() * (-H/200)), )
+print("Number of sensors = {}".format(NUM_SENSORS))
 
-AnchorsXYZ = {"above": [(0., 0., H), (F, 0., H), (0., F, H), (F, F, H)], \
-                "below": [(0., 0., -H/4), (F, 0., -H/4), (0., F, -H/4), (F, F, -H/4)]}
+actual_s_locations = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H/H)  # X, Y, Z coordinates
 
-with open("data/actual_sensor_locations.dat", "w") as f:
+print("actual_s_locations.shape = {}".format(actual_s_locations.shape))
+
+AnchorsXYZ = [(0., 0., H),
+              (F, 0., H),
+              (0., F, H),
+              (F, F, H),
+              (0., 0., -H/4),
+              (F, 0., -H/4),
+              (0., F, -H/4),
+              (F, F, -H/4)]
+
+with open("data/actual_sensor_locations.csv", "w") as f:
     csvwriter = csv.writer(f, delimiter="\t")
     csvwriter.writerow(["#X", "Y", "Z"])
     for xyz in actual_s_locations:
         csvwriter.writerow(xyz)
-with open("data/anchor_locations.dat", "w") as f:
+
+with open("data/anchor_locations.csv", "w") as f:
     csvwriter = csv.writer(f, delimiter="\t")
     csvwriter.writerow(["#X", "Y", "Z"])
-    for xyz in AnchorsXYZ["above"]+AnchorsXYZ["below"]:
+    for xyz in AnchorsXYZ:
         csvwriter.writerow(xyz)
 
 
@@ -37,75 +44,71 @@ with open("data/anchor_locations.dat", "w") as f:
 # f_err = open("error.csv", "w")
 #
 # #for epsilon_index in range(4):
-# epsilon_index = 0
+epsilon_index = 0
+
+# DELTA_T is a parameter
 # DELTA_T_ARR = [0.02, 0.04, 0.06, 0.08, 0.10, 0.12]   #2 nano seconds
 #
+DELTA_T = 0.02   # For Sensitivity analysis
 # for DELTA_T in DELTA_T_ARR:
-#     xEstSamples = [[] for _ in range(NUM_SENSORS)]
-#     yEstSamples = [[] for _ in range(NUM_SENSORS)]
-#     zEstSamples = [[] for _ in range(NUM_SENSORS)]
-#     errors = []
-#
-#     for ctr in range(1):
-#         EPSILON_S_REAL = EPSILON_SOIL[epsilon_index]["real"]
-#         EPSILON_S_IMG = EPSILON_SOIL[epsilon_index]["img"]
-#
-#
-#         ALPHA_SOIL = OMEGA * sqrt( (MU_S * EPSILON_S_REAL/2) * (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) - 1))
-#
-#         RHO = ((sqrt(MU_A / EPSILON_AIR) - sqrt(MU_S / EPSILON_S_REAL)) / \
-#             (sqrt(MU_A / EPSILON_AIR) + sqrt(MU_S / EPSILON_S_REAL))) ** 2
-#
-#         TAU = 1 - RHO
-#
-#         speed_soil = ( \
-#             sqrt( \
-#             (MU_S * EPSILON_S_REAL / 2 ) * (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) + 1)\
-#             ) \
-#         ) \
-#             ** (-1) * (10 ** (-7))
-#
-#
-#         AnchorsXYZ = {"above": [(0., 0., H), (F, 0., H), (0., F, H), (F, F, H)], \
-#                     "below": [(0., 0., -H/4), (F, 0., -H/4), (0., F, -H/4), (F, F, -H/4)]}
-#         #AnchorsXYZ = {"above": [(0., 0., H), (F, 0., H), (0., F, H), (F, F, H)]}
-#
-#         obsTAnchors = {"above": (), "below": ()}
-#
-#         #Anchor to sensor observations
-#         for xyzOneSensorActual in actual_s_locations:
-#             observed = {}
-#             i = 0
-#             for anchor in AnchorsXYZ["below"]:
-#                 distance = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 +\
-#                         (anchor[1] - xyzOneSensorActual[1]) ** 2 +\
-#                         (anchor[2] - xyzOneSensorActual[2]) ** 2)
-#                 power = p_average_soil2soil(distance, ALPHA_SOIL)
-#                 if (power > -110.0):
-#                     mean = distance / speed_soil + random()/40
-#                     sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
-#                     ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
-#                     observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)   # TODO Why do we randomize it twice?
-#                 i = i + 1
-#             obsTAnchors["below"] += (observed, )
-#
-#             observed = {}
-#             i = 0
-#             for anchor in AnchorsXYZ["above"]:
-#                     distanceAir = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 +\
-#                         (anchor[1] - xyzOneSensorActual[1]) ** 2 +\
-#                         (anchor[2]) ** 2)
-#                     distanceSoil = abs(xyzOneSensorActual[2])
-#                     signalPowerdB = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
-#                     if signalPowerdB > -110.0:
-#                         mean = distanceAir / speed + distanceSoil / speed_soil
-#                         sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
-#                         ob = numpy.random.normal(loc = mean, scale = sigma, size = 1)[0]
-#                         observed[i] = numpy.random.uniform(ob-DELTA_T, ob+DELTA_T)
-#                     i = i + 1
-#                     #observed = observed + ((distanceAir + distanceSoil) / speed + random()/400, )
-#             obsTAnchors["above"] += (observed, )
-#
+xEstSamples = [[] for _ in range(NUM_SENSORS)]
+yEstSamples = [[] for _ in range(NUM_SENSORS)]
+zEstSamples = [[] for _ in range(NUM_SENSORS)]
+errors = []
+
+EPSILON_S_REAL = np.real(EPSILON_SOIL[epsilon_index])
+EPSILON_S_IMG = np.imag([epsilon_index])
+
+ALPHA_SOIL = OMEGA * \
+             sqrt((MU_S * EPSILON_S_REAL/2) *
+                  (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) - 1))
+
+RHO = ((sqrt(MU_A / EPSILON_AIR) - sqrt(MU_S / EPSILON_S_REAL)) / \
+    (sqrt(MU_A / EPSILON_AIR) + sqrt(MU_S / EPSILON_S_REAL))) ** 2
+
+TAU = 1 - RHO
+
+speed_soil = ( \
+    sqrt( \
+    (MU_S * EPSILON_S_REAL / 2 ) * (sqrt(1 + (EPSILON_S_IMG/EPSILON_S_REAL) ** 2) + 1)\
+    ) ) ** (-1) * (10 ** (-7))
+
+obsTAnchors = {"above": (), "below": ()}
+
+# Anchor to sensor observations
+toa_observed_from_anchors = []
+for xyzOneSensorActual in actual_s_locations:
+    toa_from_anchors = []
+    for anchor in AnchorsXYZ[:4]:     #For anchors above soil
+        # assert anchor.shape == xyzOneSensorActual.shape
+        distance = np.sqrt(np.sum((anchor-xyzOneSensorActual)**2))
+
+        # power = p_average_soil2soil(distance, ALPHA_SOIL)   # Received signal power for soil anchors
+        distanceAir = sqrt((anchor[0] - xyzOneSensorActual[0]) ** 2 + \
+                           (anchor[1] - xyzOneSensorActual[1]) ** 2 + \
+                           (anchor[2]) ** 2)
+        distanceSoil = abs(xyzOneSensorActual[2])
+        power = p_average_air2soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
+
+        if (power > -110.0):
+            # Only use the time of arrival measurement if the power is meaningful
+            # mean = distance / speed_soil # TODO Introduce better randomness in the calculation
+            # sigma = sigma_soil2Soil(distance, ALPHA_SOIL)
+            mean = distanceAir / speed + distanceSoil / speed_soil
+            sigma = sigma_air2Soil(distanceAir, distanceSoil, ALPHA_SOIL, TAU)
+            print("Sampling t with mean = {} and sigma = {}".format(mean, sigma))
+            ob = np.random.normal(loc = mean, scale = sigma, size = 1)[0]
+            toa_from_anchors.append(ob)
+        else:
+            toa_from_anchors.append(np.nan)
+            # We will randomize twice for sensitivity analysis
+            # observed[i] = np.random.uniform(ob-DELTA_T, ob+DELTA_T)   #
+    toa_observed_from_anchors.append(toa_from_anchors)
+    print("toa_from_anchors = {}".format(toa_from_anchors))
+toa_observed_from_anchors = np.asarray(toa_observed_from_anchors)
+print("toa_observed_from_anchors.shape = {}".format(toa_observed_from_anchors.shape))
+
+# TODO from here
 #         observedTime3DSS = {}
 #
 #         # Sensor to sensor observations
@@ -130,10 +133,19 @@ with open("data/anchor_locations.dat", "w") as f:
 #         #f.close()
 #         # Estimation
 #         xyzFirstEst = ()
-#         for i in range(NUM_SENSORS):
-#             xyzInitialEstimate = (random() * F, random() * F, random() * (-H/200))
-#             res = minimize(timeOfArrivalMatcherAnchorToOneSensor, xyzInitialEstimate, args=(i, obsTAnchors, AnchorsXYZ, speed_soil), method='Nelder-Mead', \
-#                 options = {"maxiter":1e6})
+x0 = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H/H)  # X, Y, Z coordinates
+result = minimize(timeOfArrivalMatcherAnchorsToSensors,
+                  x0,
+                  args=(toa_observed_from_anchors, AnchorsXYZ, speed_soil),
+                  method="Nelder-Mead",
+                  options={"maxiter": 1e6})
+        # for i in range(NUM_SENSORS):
+        #     xyzInitialEstimate = (np.random.random() * F, np.random.random() * F, np.random.random() * (-H/H))
+        #     res = minimize(timeOfArrivalMatcherAnchorToOneSensor,
+        #                       xyzInitialEstimate,
+        #                       args=(i, obsTAnchors, AnchorsXYZ, speed_soil),
+        #                       method='Nelder-Mead', \
+        #         options = {"maxiter":1e6})
 #
 #             e = res.x
 #             if (e[2] > 0 ):    # Sensor height cannot be greater than ground level
@@ -218,8 +230,8 @@ with open("data/anchor_locations.dat", "w") as f:
 #     print "max yEst STD = ", numpy.max([numpy.std(x) for x in yEstSamples])
 #     print "max zEst STD = ", numpy.max([numpy.std(x) for x in zEstSamples])
 #     print "max error = ", numpy.max(errors) / NUM_SENSORS
-#
-# f_x_std.close()
-# f_y_std.close()
-# f_z_std.close()
-# f_err.close()
+# #
+# # f_x_std.close()
+# # f_y_std.close()
+# # f_z_std.close()
+# # f_err.close()
