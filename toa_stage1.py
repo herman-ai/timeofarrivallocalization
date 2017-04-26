@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 from math import log10
 
 speed = 3. * 10**8
-NUM_RUNS = 1
+NUM_RUNS = 100
 MU_0 = 4 * pi * 10 ** (-7)
 EPSILON_0 = 8.85 * 10 ** (-12)
 
@@ -165,12 +165,11 @@ if __name__ == "__main__":
                     mean = distanceAir / speed + distanceSoil / speed_soil
                     sigma = localizer.sigma_air2Soil(distanceAir, distanceSoil)
                     # print("Sampling t with mean = {} and sigma = {}".format(mean, sigma))
-                    ob = np.random.normal(loc=mean, scale=sigma, size=1)[0]
+                    ob = np.random.normal(loc=mean, scale=sigma, size=1)[0] - 5e-9
                     toa_from_anchors.append(ob)
                 else:
+                    raise AssertionError("Invalid power")
                     toa_from_anchors.append(np.nan)
-                    # We will randomize twice for sensitivity analysis
-                    # observed[i] = np.random.uniform(ob-DELTA_T, ob+DELTA_T)   #
             toa_observed_from_anchors.append(toa_from_anchors)
 
         toa_observed_from_anchors = np.asarray(toa_observed_from_anchors)
