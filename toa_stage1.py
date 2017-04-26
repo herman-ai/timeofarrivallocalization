@@ -25,28 +25,50 @@ class ToaLocalizer:
                                 16.4109595611802 + 2.36876126519685j,
                                 24.4855102012741 + 3.85704851601056j)) * EPSILON_0
     
-    def __init__(self, epsilon_index, f, anchor_locations):
-        e_s_real = np.real(ToaLocalizer.EPSILON_SOIL[epsilon_index])
-        e_s_img = np.imag([epsilon_index])
+    def __init__(self, epsilon_index, f):
+        self.e_s_real = np.real(ToaLocalizer.EPSILON_SOIL[epsilon_index])
+        self.e_s_img = np.imag([epsilon_index])
         e_a = EPSILON_0
         mu_a = MU_0
-        mu_s = 1.0084 * MU_0
-        omega = 2 * pi * f
-        self.anchor_locations = anchor_locations
+        self.mu_s = 1.0084 * MU_0
+        self.omega = 2 * pi * f
+        self.anchor_locations = np.asarray([[0., 0., H],
+                             [F, 0., H],
+                             [0., F, H],
+                             [F, F, H]
+                             ])
         self.beta_sq = f ** 2
-        self.alpha_s = omega * \
-                       np.sqrt((mu_s * e_s_real/2) *
-                          (np.sqrt(1 + (e_s_img/e_s_real) ** 2) - 1))
+        self.alpha_s = self.get_alpha_soil()
 
-        self.rho = ((np.sqrt(mu_a / e_a) - np.sqrt(mu_s / e_s_real)) / \
-            (np.sqrt(mu_a / e_a) + np.sqrt(mu_s / e_s_real))) ** 2   # Reflection coefficient
+        self.rho = ((np.sqrt(mu_a / e_a) - np.sqrt(self.mu_s / self.e_s_real)) / \
+            (np.sqrt(mu_a / e_a) + np.sqrt(self.mu_s / self.e_s_real))) ** 2   # Reflection coefficient
 
         self.tau = 1 - self.rho   # Transmission coefficient
 
-        self.speed_soil = ( \
-            np.sqrt( \
-            (mu_s * e_s_real / 2 ) * (np.sqrt(1 + (e_s_img/e_s_real) ** 2) + 1)\
-            )) ** (-1)
+        self.speed_soil = self.get_speed_soil()
+
+    def get_speed_soil(self, e_s_img=None, e_s_real=None, mu_s=None):
+        if e_s_img is None:
+            e_s_img = self.e_s_img
+        if e_s_real is None:
+            e_s_real = self.e_s_real
+        if mu_s is None:
+            mu_s = self.mu_s
+        return (np.sqrt( \
+                      (mu_s * e_s_real / 2) * (np.sqrt(1 + (e_s_img / e_s_real) ** 2) + 1) \
+                      )) ** (-1)
+
+    def get_alpha_soil(self, e_s_img=None, e_s_real=None, mu_s=None):
+        if e_s_img is None:
+            e_s_img = self.e_s_img
+        if e_s_real is None:
+            e_s_real = self.e_s_real
+        if mu_s is None:
+            mu_s = self.mu_s
+
+        return self.omega * \
+        np.sqrt((mu_s * e_s_real / 2) *
+                (np.sqrt(1 + (e_s_img / e_s_real) ** 2) - 1))
 
     def p_average_air2soil(self, d_a, d_s, ALPHA_SOIL=None):
       pathLossAir = 20 * np.log10(4 * pi * d_a * self.tau / LAMBDA)
@@ -64,7 +86,6 @@ class ToaLocalizer:
       sigma = np.sqrt(8 * (pi ** 2) * specular_power * T_S * self.beta_sq / TOTAL_NOISE) ** -1
       return sigma
 
-
     # Least squares objective function
     def toa_squared_error_air2soil(self, xyz, toa_observed_from_anchors, speed_soil):
 
@@ -77,26 +98,35 @@ class ToaLocalizer:
             sq_error += np.sum((toa_observed_from_anchors[i,:]-mean_toa)**2)*scale_lst_sq_obj_fn
         return sq_error
 
-    def toa_neg_log_likelihood_air2soil(self, xyz, toa_observed_from_anchors, speed_soil, ALPHA_SOIL=None):
-        if ALPHA_SOIL is None:
-            ALPHA_SOIL = self.alpha_s
+    def toa_neg_log_likelihood_air2soil(self,
+                                        xyz,
+                                        toa_observed_from_anchors,
+                                        e_s_img=None,
+                                        e_s_real=None,
+                                        mu_s=None):
         xyz = xyz.reshape(-1, 3) * (1, 1, 1 / z_scale)
         neg_log_likelihood = 0
         for i in range(xyz.shape[-2]):
             distance_air = np.sqrt(
                 np.sum((xyz[i, :2] - self.anchor_locations[:, :2]) ** 2, axis=1) + self.anchor_locations[:, 2] ** 2)
             distance_soil = abs(xyz[i, 2])
+            speed_soil = self.get_speed_soil(e_s_img, e_s_real, mu_s)
+            alpha_soil = self.get_alpha_soil(e_s_img, e_s_real, mu_s)
 
             mean_toa = distance_air / speed + distance_soil / speed_soil
-            sigma2_toa = self.sigma_air2Soil(distance_air, distance_soil, ALPHA_SOIL)**2
+            sigma2_toa = self.sigma_air2Soil(distance_air, distance_soil, alpha_soil)**2
 
             neg_log_likelihood += np.sum(((toa_observed_from_anchors[i,:]-mean_toa)**2)/sigma2_toa)
             neg_log_likelihood += np.sum(np.log(sigma2_toa))
         return neg_log_likelihood
 
 
-
-    # def toa_neg_log_likelihood(self, xyz, toa_observed_from_anchors, anchor_locations, speed):
+    def toa_neg_log_likelihood(self, xyz,
+                               toa_observed_from_anchors,
+                               e_s_img=None,
+                               e_s_real=None,
+                               mu_s=None):
+        return self.toa_neg_log_likelihood_air2soil(xyz, toa_observed_from_anchors, e_s_img, e_s_real, mu_s)
 
 if __name__ == "__main__":
     H = 200
@@ -106,12 +136,8 @@ if __name__ == "__main__":
     xy_error = 0
     z_error = 0
     np.random.seed(0)
-    AnchorsXYZ = np.asarray([[0., 0., H],
-                             [F, 0., H],
-                             [0., F, H],
-                             [F, F, H]
-                             ])
-    localizer = ToaLocalizer(epsilon_index=0, f=833 * 10 ** 6, anchor_locations=AnchorsXYZ)    # epsilon index = 0
+
+    localizer = ToaLocalizer(epsilon_index=0, f=833 * 10 ** 6)    # epsilon index = 0
     speed_soil = localizer.speed_soil
     for i in range(NUM_RUNS):
 
@@ -124,7 +150,7 @@ if __name__ == "__main__":
         toa_observed_from_anchors = []
         for xyzOneSensorActual in actual_s_locations:
             toa_from_anchors = []
-            for anchor in AnchorsXYZ[:4]:  # For anchors above soil
+            for anchor in localizer.anchor_locations[:4]:  # For anchors above soil
                 # assert anchor.shape == xyzOneSensorActual.shape
                 distance = np.sqrt(np.sum((anchor - xyzOneSensorActual) ** 2))
 
@@ -152,12 +178,12 @@ if __name__ == "__main__":
         # print("toa_observed_from_anchors = {}".format(toa_observed_from_anchors))
 
 
-        # neg_likelihood = localizer.toa_neg_log_likelihood_air2soil(actual_s_locations * (1, 1, z_scale),
+        # neg_likelihood = localizer.toa_neg_log_likelihood(actual_s_locations * (1, 1, z_scale),
         #                                                  toa_observed_from_anchors,
         #                                                  speed_soil)
         #
         # # print("neg_likelihood at minima = {}".format(neg_likelihood))
-        # neg_likelihood = localizer.toa_neg_log_likelihood_air2soil(xyz0 * (1, 1, z_scale),
+        # neg_likelihood = localizer.toa_neg_log_likelihood(xyz0 * (1, 1, z_scale),
         #                                                  toa_observed_from_anchors,
         #                                                  speed_soil)
 
@@ -165,9 +191,9 @@ if __name__ == "__main__":
 
 
         bnds = (((None, None),)*2+((-100,0),))*NUM_SENSORS
-        result = minimize(localizer.toa_neg_log_likelihood_air2soil,
+        result = minimize(localizer.toa_neg_log_likelihood,
                           xyz0 * (1, 1, z_scale),
-                          args=(toa_observed_from_anchors, speed_soil),
+                          args=(toa_observed_from_anchors),
                           # method="Nelder-Mead",
                           method="L-BFGS-B",
                           bounds=bnds,
@@ -176,7 +202,6 @@ if __name__ == "__main__":
         #
         # np.savetxt("data/est_stage1.csv", estimated_locations)
         # np.savetxt("data/act_sensor_loc.csv", actual_s_locations)
-
 
         if result.success == True:
             print("num_samples = {}".format(num_samples))
