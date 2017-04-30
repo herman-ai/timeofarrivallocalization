@@ -60,7 +60,7 @@ def sigma_soil2Soil(d, ALPHA_SOIL):
   return sigma
 
 
-def toa_squared_error(xyz, toa_observed_from_other_sensors):
+def toa_squared_error_soil2soil(xyz, toa_observed_from_other_sensors):
     xyz = xyz.reshape(-1,3)*(1,1,1/z_scale)
     sq_error = 0.
     for i in range(xyz.shape[-2]):
@@ -107,9 +107,9 @@ def toa_neg_log_likelihood_soil2soil(xyz, toa_observed_from_other_sensors_dir,
             if i == j:
                 continue
             if toa_observed_from_other_sensors_dir[i, j] > 0 and toa_observed_from_other_sensors_reflected[i,j] > 0:
-                dist = np.sqrt(np.sum((xyz[i] - xyz[j]) ** 2))
-                mean_toa = dist / speed_soil
-                sigma2_toa_dir = sigma_soil2Soil(dist, ALPHA_SOIL)**2
+                dist_dir = np.sqrt(np.sum((xyz[i] - xyz[j]) ** 2))
+                mean_toa_dir = dist_dir / speed_soil
+                sigma2_toa_dir = sigma_soil2Soil(dist_dir, ALPHA_SOIL)**2
                 # neg_log_likelihood += ((toa_observed_from_other_sensors_dir[i, j] - mean_toa) ** 2) /sigma2_toa
                 # neg_log_likelihood += 0.5*np.log(sigma2_toa)
 
@@ -134,15 +134,15 @@ def toa_neg_log_likelihood_soil2soil(xyz, toa_observed_from_other_sensors_dir,
                     print(xyz[i, 2] == 0 or xyz[j, 2] == 0)
                     print("warning")
 
-                dist = d1 + d2
-                mean_toa_ref = dist / speed_soil
-                sigma2_toa_ref = sigma_soil2Soil_reflected(dist, ALPHA_SOIL) ** 2
+                dist_ref = d1 + d2
+                mean_toa_ref = dist_ref / speed_soil
+                sigma2_toa_ref = sigma_soil2Soil_reflected(dist_ref, ALPHA_SOIL) ** 2
                 sigma2_cross = sigma_soil2soil_cross(dist_dir, dist_ref, ALPHA_SOIL)
                 # neg_log_likelihood += ((toa_observed_from_other_sensors_reflected[i, j] - mean_toa_ref) ** 2) / sigma2_toa_ref
                 # neg_log_likelihood += 0.5 * np.log(sigma2_toa_ref)
 
                 t = np.asarray([toa_observed_from_other_sensors_dir[i, j], toa_observed_from_other_sensors_reflected[i, j]]).reshape(2,1)
-                t_bar = np.asarray([mean_toa, mean_toa_ref])
+                t_bar = np.asarray([mean_toa_dir, mean_toa_ref])
                 sigma = np.asarray([[1/sigma2_toa_dir[0], sigma2_cross], [sigma2_cross,1/sigma2_toa_ref[0]]])
 
                 a = sigma.dot(t-t_bar)
