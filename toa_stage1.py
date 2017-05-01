@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 from math import log10
 
 speed = 3. * 10**8
-NUM_RUNS = 100
+NUM_RUNS = 1000
 MU_0 = 4 * pi * 10 ** (-7)
 EPSILON_0 = 8.85 * 10 ** (-12)
 
@@ -404,7 +404,7 @@ if __name__ == "__main__":
                           # method="Nelder-Mead",
                           method="L-BFGS-B",
                           bounds=bnds,
-                          options={"maxiter":1e6})
+                          options={"maxiter":2e2})
         print("stage 1 success ? {}".format(result.success))
         est_s_locations_stage1 = result.x.reshape(-1, 3) * (1, 1, 1 / z_scale)
         #
@@ -455,7 +455,7 @@ if __name__ == "__main__":
                           method="TNC",
                           # method='SLSQP',
                           bounds=bnds,
-                          options={"maxiter": int(1e6)})
+                          options={"maxiter": int(2e2)})
         print("stage 2 success ? {}".format(result.success))
         est_s_locations_stage2 = result.x.reshape(-1, 3) * (1, 1, 1 / z_scale)
         # print("actual =\n{}".format(actual_s_locations))
