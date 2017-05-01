@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 from math import log10
 
 speed = 3. * 10**8
-NUM_RUNS = 1
+NUM_RUNS = 100
 MU_0 = 4 * pi * 10 ** (-7)
 EPSILON_0 = 8.85 * 10 ** (-12)
 
@@ -278,16 +278,19 @@ class ToaLocalizer:
                     # if toa_observed_from_other_sensors_reflected[i,j] > 0:
                     # print("i={},j={}".format(i,j))
 
-        return neg_log_likelihood * scale_neg_log_likelihood_soil2soil
+        return 100*(neg_log_likelihood * scale_neg_log_likelihood_soil2soil)
 
 if __name__ == "__main__":
     H = 200
     F = 100
     NUM_SENSORS = 5
-    num_samples = 0
-    xy_error = 0
-    z_error = 0
-    np.random.seed(0)
+    num_samples_1 = 0
+    xy_error1 = 0
+    z_error1 = 0
+    num_samples_2 = 0
+    xy_error2 = 0
+    z_error2 = 0
+    # np.random.seed(0)
 
     localizer = ToaLocalizer(epsilon_index=0, f=833 * 10 ** 6)    # epsilon index = 0
     speed_soil = localizer.speed_soil
@@ -295,7 +298,7 @@ if __name__ == "__main__":
 
         actual_s_locations = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
         # print("actual_s_locations.shape = {}".format(actual_s_locations.shape))
-        # print("Actual sensor location = {}".format(actual_s_locations))
+        print("Actual sensor locations = \n{}".format(actual_s_locations))
         xyz0 = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
         # print("Guessed sensor location = {}".format(xyz0))
 
@@ -402,27 +405,26 @@ if __name__ == "__main__":
                           method="L-BFGS-B",
                           bounds=bnds,
                           options={"maxiter":1e6})
+        print("stage 1 success ? {}".format(result.success))
         est_s_locations_stage1 = result.x.reshape(-1, 3) * (1, 1, 1 / z_scale)
         #
         # np.savetxt("data/est_stage1.csv", estimated_locations)
         # np.savetxt("data/act_sensor_loc.csv", actual_s_locations)
 
         if result.success == True:
-            print("num_samples = {}".format(num_samples))
-            print("estimated locations = \n{}".format(est_s_locations_stage1))
-            print("actual locations = \n{}".format(actual_s_locations))
-            num_samples += 1
-            xy_error += np.sum(np.sqrt(np.sum((est_s_locations_stage1[:, :2] - actual_s_locations[:, :2]) ** 2, axis=1)))
-            z_error  += np.sum(np.abs(est_s_locations_stage1[:, 2] - actual_s_locations[:, 2]))
+            print("num_samples 1= {}".format(num_samples_1))
+            print("estimated locations 1= \n{}".format(est_s_locations_stage1))
+            # print("actual locations 1 = \n{}".format(actual_s_locations))
+            num_samples_1 += 1
+            xy_error1 += np.sum(np.sqrt(np.sum((est_s_locations_stage1[:, :2] - actual_s_locations[:, :2]) ** 2, axis=1)))
+            z_error1  += np.sum(np.abs(est_s_locations_stage1[:, 2] - actual_s_locations[:, 2]))
             # print("z_error = {}".format(np.sum(np.abs(estimated_locations[:,2]-actual_s_locations[:,2]))))
 
-    # TODO Move out of loop
-    # print("xy error = {}".format(xy_error/(num_samples*NUM_SENSORS)))
-    # print("z error = {}".format(z_error/(num_samples*NUM_SENSORS)))
+
 
         ### Stage 2
-        print("observed toa from other sensors (dir)=\n{}".format(toa_observed_from_other_sensors_dir))
-        print("observed toa from other sensors (reflected) =\n{}".format(toa_observed_from_other_sensors_reflected))
+        # print("observed toa from other sensors (dir)=\n{}".format(toa_observed_from_other_sensors_dir))
+        # print("observed toa from other sensors (reflected) =\n{}".format(toa_observed_from_other_sensors_reflected))
 
         # xyz0 = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
         xyz0 = est_s_locations_stage1
@@ -440,10 +442,10 @@ if __name__ == "__main__":
         bnds = (((None, None),) * 2 + ((-100, -1),)) * NUM_SENSORS
         lower = est_s_locations_stage1 - np.asarray([0.01, 0.01, 0.0001])
         upper = est_s_locations_stage1 + np.asarray([0.01, 0.01, 0.0001])
-        print(bnds)
+        # print(bnds)
         bnds = list(((bb[0], cc[0]), (bb[1], cc[1]), (bb[2] * z_scale, cc[2] * z_scale)) for bb, cc in zip(lower, upper))
         bnds = np.asarray(bnds).reshape(-1, 2)
-        print(bnds)
+        # print(bnds)
 
         result = minimize(localizer.toa_neg_log_likelihood_soil2soil,
                           xyz0 * (1, 1, z_scale),
@@ -454,15 +456,27 @@ if __name__ == "__main__":
                           # method='SLSQP',
                           bounds=bnds,
                           options={"maxiter": int(1e6)})
-        print(result.success)
+        print("stage 2 success ? {}".format(result.success))
         est_s_locations_stage2 = result.x.reshape(-1, 3) * (1, 1, 1 / z_scale)
-        print("actual =\n{}".format(actual_s_locations))
-        print("stage 1=\n{}".format(est_s_locations_stage1))
-        print("stage 2 =\n{}".format(est_s_locations_stage2))
-        np.savetxt("data/est_stage2.csv", est_s_locations_stage2)
+        # print("actual =\n{}".format(actual_s_locations))
+        # print("stage 1=\n{}".format(est_s_locations_stage1))
+        # print("stage 2 =\n{}".format(est_s_locations_stage2))
+        # np.savetxt("data/est_stage2.csv", est_s_locations_stage2)
         sq_error_at_est = localizer.toa_neg_log_likelihood_soil2soil(est_s_locations_stage2 * (1, 1, z_scale),
                                                            toa_observed_from_other_sensors_dir,
                                                            toa_observed_from_other_sensors_reflected)
-        print("squared error at est_s_locations_stage2 = {}".format(sq_error_at_est))
+        # print("squared error at est_s_locations_stage2 = {}".format(sq_error_at_est))
+        if result.success == True:
+            print("num_samples 2= {}".format(num_samples_2))
+            print("estimated locations 2= \n{}".format(est_s_locations_stage2))
+            # print("actual locations 2 = \n{}".format(actual_s_locations))
+            num_samples_2 += 1
+            xy_error2 += np.sum(np.sqrt(np.sum((est_s_locations_stage2[:, :2] - actual_s_locations[:, :2]) ** 2, axis=1)))
+            z_error2 += np.sum(np.abs(est_s_locations_stage2[:, 2] - actual_s_locations[:, 2]))
+
+    print("xy error = {}".format(xy_error1 / (num_samples_1 * NUM_SENSORS)))
+    print("z error = {}".format(z_error1 / (num_samples_1 * NUM_SENSORS)))
+    print("xy error 2 = {}".format(xy_error2 / (num_samples_2 * NUM_SENSORS)))
+    print("z error 2= {}".format(z_error2 / (num_samples_2 * NUM_SENSORS)))
 
 
