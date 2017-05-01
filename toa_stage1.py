@@ -429,15 +429,15 @@ if __name__ == "__main__":
         # xyz0 = np.random.random_sample(size=(NUM_SENSORS, 3)) * (F, F, -H / H)  # X, Y, Z coordinates
         xyz0 = est_s_locations_stage1
 
-        sq_error_at_actual = localizer.toa_neg_log_likelihood_soil2soil(actual_s_locations * (1, 1, z_scale),
-                                                              toa_observed_from_other_sensors_dir,
-                                                              toa_observed_from_other_sensors_reflected)
-        print("squared error at actual = {}".format(sq_error_at_actual))
-
-        sq_error_at_seed = localizer.toa_neg_log_likelihood_soil2soil(xyz0 * (1, 1, z_scale),
-                                                            toa_observed_from_other_sensors_dir,
-                                                            toa_observed_from_other_sensors_reflected)
-        print("squared error at seed = {}".format(sq_error_at_seed))
+        # sq_error_at_actual = localizer.toa_neg_log_likelihood_soil2soil(actual_s_locations * (1, 1, z_scale),
+        #                                                       toa_observed_from_other_sensors_dir,
+        #                                                       toa_observed_from_other_sensors_reflected)
+        # print("squared error at actual = {}".format(sq_error_at_actual))
+        #
+        # sq_error_at_seed = localizer.toa_neg_log_likelihood_soil2soil(xyz0 * (1, 1, z_scale),
+        #                                                     toa_observed_from_other_sensors_dir,
+        #                                                     toa_observed_from_other_sensors_reflected)
+        # print("squared error at seed = {}".format(sq_error_at_seed))
 
         bnds = (((None, None),) * 2 + ((-100, -1),)) * NUM_SENSORS
         lower = est_s_locations_stage1 - np.asarray([0.01, 0.01, 0.0001])
@@ -462,9 +462,9 @@ if __name__ == "__main__":
         # print("stage 1=\n{}".format(est_s_locations_stage1))
         # print("stage 2 =\n{}".format(est_s_locations_stage2))
         # np.savetxt("data/est_stage2.csv", est_s_locations_stage2)
-        sq_error_at_est = localizer.toa_neg_log_likelihood_soil2soil(est_s_locations_stage2 * (1, 1, z_scale),
-                                                           toa_observed_from_other_sensors_dir,
-                                                           toa_observed_from_other_sensors_reflected)
+        # sq_error_at_est = localizer.toa_neg_log_likelihood_soil2soil(est_s_locations_stage2 * (1, 1, z_scale),
+        #                                                    toa_observed_from_other_sensors_dir,
+        #                                                    toa_observed_from_other_sensors_reflected)
         # print("squared error at est_s_locations_stage2 = {}".format(sq_error_at_est))
         if result.success == True:
             print("num_samples 2= {}".format(num_samples_2))
